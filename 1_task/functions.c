@@ -60,6 +60,7 @@ int printHex(int x) {
         }
         printf("%c", result[i]);
     }
+    return 1;
     printf("\n");
 }
 
@@ -124,6 +125,7 @@ int flagA(const int x) {
 
 int flagF(const int x) {
     fact(x);
+    return 1;
 }
 
 int flagS(const int x) {
