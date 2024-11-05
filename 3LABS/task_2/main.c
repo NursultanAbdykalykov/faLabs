@@ -1,175 +1,261 @@
 #include <stdio.h>
+#include <math.h>
 #include <stdarg.h>
 #include <stdlib.h>
-#include <math.h>
-#include <float.h>
+#include <string.h>
 
-typedef enum
-{
+
+enum Errors {
+    ERROR = -1,
     SUCCESS,
-    INVALID_DIMENSION,
-    NO_VECTORS_PROVIDED,
-    NORM_FUNCTION_NOT_PROVIDED
-} ErrorCode;
+};
 
-// Тип функции для вычисления нормы
-typedef double (*NormFunction)(const double *, int, const void *);
+typedef double (*Norma)(double* x, int n);
 
-// Фдля первой
-double infinityNorm(const double *vec, int n, const void *_)
-{
-    double max_val = 0.0;
-    for (int i = 0; i < n; ++i)
-    {
-        double abs_val = fabs(vec[i]);
-        if (abs_val > max_val)
-        {
-            max_val = abs_val;
+typedef struct {
+    int n;
+    double* x; 
+} Vector;
+
+double IterPow(double a, long long n) {
+    double result = 1.0;
+
+    if (n == 0) {
+        return result; 
+    }
+
+    if (n < 0) {
+        a = 1.0 / a;
+        n = -n; 
+    }
+
+    while (n > 0) {
+        if (n % 2 == 0) {
+            a *= a;
+            n /= 2;
+        } else {
+            result *= a;
+            n--;
         }
     }
-    return max_val;
+
+    return result;
 }
 
-// для второй
-double pNorm(const double *vec, int n, const void *p_ptr)
-{
-    double p = *(const double *)p_ptr; // Приводим указатель к тпиу double
-    double sum = 0.0;
-    for (int i = 0; i < n; ++i)
-    {
-        sum += pow(fabs(vec[i]), p);
-    }
-    return pow(sum, 1.0 / p);
-}
-
-// для тертьей
-double matrixNorm(const double *vec, int n, const void *A_ptr)
-{
-    const double **A = (const double **)A_ptr;
-    double sum = 0.0;
-
-    for (int i = 0; i < n; ++i)
-    {
-        double temp = 0.0;
-        for (int j = 0; j < n; ++j)
-        {
-            temp += A[i][j] * vec[j];
+int ValidateNumber(const char* str) {
+    int lenStr = strlen(str);
+    for (int i = 0; i < lenStr; ++i) {
+        if ('0' > str[i] || str[i] > '9') {
+            return 0;
         }
-        sum += temp * vec[i];
     }
-    return sqrt(sum);
+    return 1;
 }
 
-// функция для поиска вектора с наибольшей номрой
-ErrorCode findLongestVector(int n, int numVectors, int numNorms, ...)
-{
-    if (n <= 0)
-        return INVALID_DIMENSION;
-    if (numVectors <= 0)
-        return NO_VECTORS_PROVIDED;
-    if (numNorms <= 0)
-        return NORM_FUNCTION_NOT_PROVIDED;
-
-    va_list args;
-    va_start(args, numNorms);
-
-    // считываем векторы
-    const double **vectors = malloc(numVectors * sizeof(double *));
-    for (int i = 0; i < numVectors; ++i)
-    {
-        vectors[i] = va_arg(args, const double *);
-    }
-
-    // считываем функции норм и их параметры
-    NormFunction *normFuncs = malloc(numNorms * sizeof(NormFunction));
-    const void **normParams = malloc(numNorms * sizeof(void *));
-    for (int i = 0; i < numNorms; ++i)
-    {
-        normFuncs[i] = va_arg(args, NormFunction);
-        normParams[i] = va_arg(args, const void *);
-    }
-
-    // для каждой функции нормы находим вектор с максимальной нормой
-    for (int i = 0; i < numNorms; ++i)
-    {
-        NormFunction normFunc = normFuncs[i];
-        const void *normParam = normParams[i];
-        double maxNorm = -DBL_MAX;
-        const double *longestVector = NULL;
-
-        for (int j = 0; j < numVectors; ++j)
-        {
-            double currentNorm = normFunc(vectors[j], n, normParam);
-            if (currentNorm > maxNorm)
-            {
-                maxNorm = currentNorm;
-                longestVector = vectors[j];
+int ValidateFloatNumber(const char* str) {
+    int lenStr = strlen(str);
+    int wasSep = 0;
+    for (int i = 0; i < lenStr; ++i) {
+        if (str[i] == '-') {
+            if (i == 0) {
+                continue;
+            } else {
+                return 0;
             }
         }
-
-        if (longestVector != NULL)
-        {
-            printf("Вектор с наибольшей нормой для функции %d: ", i + 1);
-            for (int k = 0; k < n; ++k)
-            {
-                printf("%f ", longestVector[k]);
-            }
-            printf("\n");
+        if (str[i] == '.' || str[i] == ','){
+            if (wasSep) {
+                return 0;
+            } 
+            wasSep = 1;
+        } else if (('0' > str[i] || str[i] > '9') && str[i] != '.' && str[i] != ',') {
+            return 0;
         }
     }
+    return 1;
+}
 
-    free(vectors);
-    free(normFuncs);
-    free(normParams);
-    va_end(args);
+double FirstNorma(double* x, int n) {
+    if (n <= 0) {
+        return -1;
+    }
+    double max = 0;
+    for (int i = 0; i < n; ++i) {
+        int isNegative = x[i] < 0 ? -1 : 1;
+        if (x[i] * isNegative > max) {
+            max = x[i];
+        }
+    }
+    return max;
+}
+
+double CalculateSum(double* x, int n, int p) {
+    if (n <= 0 || p <= 0) {
+        return ERROR;
+    }
+    double sum = 0;
+    for (int i = 0; i < n; ++i) {
+        int isNegative = x[i] < 0 ? -1 : 1;
+        sum += IterPow(isNegative * x[i], p);
+    }
+    sum = pow(sum, 1.0 / p);
+    return sum;
+}
+
+double SecondNorma(double* x, int n) {
+    int p = 2;
+    return CalculateSum(x, n, p);
+}
+
+double MulMatrixVec(double* A, double* x, int n) {
+    double newX[n];
+    double result = 0;
+    for (int i = 0; i < n ; ++i) {
+        newX[i] = 0;
+        for (int j = 0; j < n; ++j) {
+            newX[i] += A[(i * n) + j] * x[j];
+        }
+    }
+    
+    for (int i = 0; i < n; ++i) {
+        result += newX[i] * x[i];
+    }
+    return result;
+}
+
+double ThirdNorma(double* x, int n) {
+    double A[] = {
+        10.0, 2.0, 3.0,
+        4.0, 3.3, 7.0,
+        7.0, 8.0, 9.0
+    };
+    double res = pow(MulMatrixVec(A, x, n), 0.5);
+    return res;
+}
+
+int DisplayResult(int amountOfVectors[], Vector** maxVectors, int numNorm, int n) {
+    for (int i = 0; i < numNorm; ++i) {
+        printf("%d вектора для %d нормы:\n", amountOfVectors[i], i + 1);
+        for (int j = 0; j < amountOfVectors[i]; ++j) {
+            printf("* (");
+            for (int z = 0; z < n; ++z) {
+                if (z == n - 1) {
+                    printf("%.3f", maxVectors[i][j].x[z]);
+                } else {
+                    printf("%.3f, ", maxVectors[i][j].x[z]);
+                }
+            }
+            printf(")\n");
+        }
+        printf("\n");
+    }
     return SUCCESS;
 }
 
-int main()
-{
-    int n = 3;
+Vector** FindMax(int n, int numVec, int numNorm, ...) {
+    if (n <= 0 || numVec <= 0 || numNorm <= 0) {
+        return NULL;
+    }
+    Vector vectors[numVec];
+    Norma normas[numNorm];
 
-    double vec1[] = {1.0, 2.0, 3.0};
-    double vec2[] = {4.0, 5.0, 6.0};
-    double vec3[] = {7.0, 8.0, 9.0};
+    va_list args;
+    va_start(args, numNorm);
 
-    double A_data[3][3] = {
-        {2.0, 0.5, 0.0},
-        {0.5, 3.0, 0.5},
-        {0.0, 0.5, 4.0}};
-    const double *A[3] = {A_data[0], A_data[1], A_data[2]};
-
-    double p = 2.0; // Значение p для p-нормы (например, p = 2 для евклидовой нормы)
-
-    // вызыва функции для поиска вектора с наибольшей нормой
-    ErrorCode code = findLongestVector(
-        n,
-        3,
-        3,
-        vec1, vec2, vec3,
-        infinityNorm, NULL,
-        pNorm, &p,
-        matrixNorm, A);
-
-    if (code != SUCCESS)
-    {
-        printf("Произошла ошибка: ");
-        switch (code)
-        {
-        case INVALID_DIMENSION:
-            printf("Неверная размерность\n");
-            break;
-        case NO_VECTORS_PROVIDED:
-            printf("Векторы не предоставлены\n");
-            break;
-        case NORM_FUNCTION_NOT_PROVIDED:
-            printf("Функция нормы не предоставлена\n");
-            break;
-        default:
-            printf("Неизвестная ошибка\n");
-            break;
-        }
+    for (int i = 0; i < numVec; ++i) {
+        vectors[i].n = n;
+        vectors[i] = va_arg(args, Vector);
     }
 
-    return 0;
+    for (int i = 0; i < numNorm; ++i) {
+        normas[i] = va_arg(args, Norma);
+    }
+
+    int amountOfVectors[numNorm];
+    Vector** maxVectors = malloc(numNorm * sizeof(Vector*));
+    if (maxVectors == NULL) {
+        return NULL;
+    }
+    for (int i = 0; i < numNorm; i++) {
+        maxVectors[i] = malloc(numVec * sizeof(Vector));
+        if (maxVectors[i] == NULL) {
+        return NULL;
+    }
+    }
+    for (int i = 0; i < numNorm; ++i) {    
+
+        double max = normas[i](vectors[0].x, n);
+        int indx = 0;
+        for (int j = 0; j < numVec; ++j) {
+
+            if (max < normas[i](vectors[j].x, n)) {
+                max = normas[i](vectors[j].x, n);
+                maxVectors[i][0] = vectors[j];
+                indx = 1;
+            } else if (max == normas[i](vectors[j].x, n)) {
+                maxVectors[i][indx] = vectors[j];
+                indx++;
+            }
+
+        }
+        amountOfVectors[i] = indx;
+    }
+
+    va_end(args);
+
+    DisplayResult(amountOfVectors, maxVectors, numNorm, n);
+
+    return maxVectors;
+} 
+
+double* MakeVector(int n, double* x, Vector* vec) {
+    vec->n = n;
+    vec->x = (double*)malloc(sizeof(double) * n);
+    for (int i = 0; i < n; ++i) {
+        vec->x[i] = x[i];
+    }
+    return vec->x;
+}
+
+int main() {
+    Vector x1;
+    Vector x2;
+    Vector x3;
+    char buffer[15]; 
+    int n = 0; 
+    printf("Введите размерность: ");
+    scanf("%s", buffer);
+    if (!ValidateNumber(buffer)) {
+        printf("ОШИБКА: размерность должна быть числом больше 0\n");
+        return ERROR;
+    }
+    n = atoi(buffer);
+
+    double coords[3][n];
+
+    printf("Введите 3 вектора размерностью %d:\n", n);
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < n; ++j) {
+            scanf("%s", buffer);
+            if (!ValidateFloatNumber(buffer)) {
+                printf("ОШИБКА: некорректное число\n");
+                return ERROR;
+            }
+            coords[i][j] = atof(buffer);
+        }
+    }
+    
+    double* pch1 = MakeVector(n, coords[0], &x1);
+    double* pch2 = MakeVector(n, coords[1], &x2);
+    double* pch3 = MakeVector(n, coords[2], &x3);
+
+    Vector** vectors = FindMax(n, 3, 3, x1, x2, x3, &FirstNorma, &SecondNorma, &ThirdNorma);
+    free(pch1);
+    free(pch2);
+    free(pch3);
+    for (int i = 0; i < 3; i++) {
+        free(vectors[i]);
+    }
+    free(vectors);
+    return SUCCESS;
 }
