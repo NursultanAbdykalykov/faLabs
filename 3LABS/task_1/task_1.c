@@ -8,25 +8,17 @@ typedef enum {
     ERROR_INVALID_BASE = 1
 } StatusCode;
 
-#define MAX_NUMBER 4294967295U // Максимальное значение для unsigned int
-
 int is_valid_number(const char *input) {
     size_t len = strlen(input);
     for (size_t i = 0; i < len; i++) {
         if (!isdigit(input[i])) {
-            return 0; 
+            return 0; // Некорректный символ
         }
     }
-
-    unsigned long long number = strtoull(input, NULL, 10);
-    if (number > MAX_NUMBER) {
-        return 0; // Число превышает допустимый диапазон
-    }
-
-    return 1;
+    return 1; // Число корректно
 }
 
-StatusCode convert_to_base(unsigned int number, unsigned int r, char *result, size_t buffer_size) {
+StatusCode convert_to_base(unsigned long long number, unsigned int r, char *result, size_t buffer_size) {
     if (r < 1 || r > 5) {
         return ERROR_INVALID_BASE;
     }
@@ -62,25 +54,22 @@ StatusCode convert_to_base(unsigned int number, unsigned int r, char *result, si
 }
 
 int main() {
-    char input[64]; // Буфер для ввода числа
+    char input[1024]; 
 
-    printf("Введите число (не более %u): ", MAX_NUMBER);
+    printf("Введите число: ");
     if (!fgets(input, sizeof(input), stdin)) {
         printf("Ошибка: неверный ввод.\n");
         return 255;
     }
 
-    // Убираем символ новой строки, если есть
-    input[strcspn(input, "\n")] = '\0';
 
-    // Проверяем корректность ввода
     if (!is_valid_number(input)) {
-        printf("Ошибка: число некорректно или превышает максимально допустимое значение %u.\n", MAX_NUMBER);
+        printf("Ошибка: число некорректно.\n");
         return 255;
     }
 
     // Преобразуем строку в число
-    unsigned int number = (unsigned int)strtoul(input, NULL, 10);
+    unsigned long long number = strtoull(input, NULL, 10);
 
     const size_t BUFFER_SIZE = 33; // Максимум 32 цифры + '\0'
     char result[BUFFER_SIZE];
