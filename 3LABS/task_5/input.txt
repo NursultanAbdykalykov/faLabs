@@ -1,0 +1,11 @@
+1 lol cheburek 210 5 5 5 5 5
+2 kek lolkenov 212 4 5 4 5 5
+3 vasiliy antonov 214 99 99 99 99 99
+4 victor verennikov 999 100 100 100 100 100
+5 dima melgunov 201 22 13 45 55 65
+6 kolya melnikov 2013 223 444 333 111 555
+7p kto-to hzkto 200 1 1 1 1 1
+8 kto$4 kekov 200 3 3 3 3 3 
+9 kto k$kov 200 3 3 3 3 3 
+10 cat meow 214 -1 4 5 4 5
+
